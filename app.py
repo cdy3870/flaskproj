@@ -1,10 +1,14 @@
-from flask import Flask, render_template, url_for, redirect, request, session, flash
-
+from flask import Flask, render_template, url_for, redirect, request, session, flash, g
 from functools import wraps
+import sqlite3
 
 app = Flask(__name__)
-app.secret_key = 'secret'
 
+#key needed for session 
+app.secret_key = 'secret'
+app.database = "sample.db"
+
+#wrap used to prevent unwanted accesses
 def login_required(f):
 	@wraps(f)
 	def wrap(*args, **kwargs):
@@ -18,8 +22,14 @@ def login_required(f):
 @app.route('/')
 @login_required
 def home():
-	#return 'Hello World'
-	return render_template('index.html')
+	#g stores temporary objects, specific to flask, storing connection
+	g.db = connect_db()
+	#select query
+	cur = g.db.execute('select * from posts')
+	#create dict/map, used list comprehension to store query results in dict
+	posts = [dict(title = row[0], description = row[1]) for row in cur.fetchall()]
+	g.db.close()
+	return render_template('index.html', posts = posts)
 
 @app.route('/welcome')
 def welcome():
@@ -32,6 +42,7 @@ def login():
 		if request.form['username'] != 'admin' or request.form['password'] != 'admin':
 			error = 'invalid credentials'
 		else:
+			#store session value as true to indicate login
 			session['logged_in'] = True
 			flash('you were just logged in')
 			return redirect(url_for('home'))
@@ -44,6 +55,10 @@ def logout():
 	session.pop('logged_in', None)
 	flash('you were just logged out')
 	return redirect(url_for('welcome'))
+
+#established connection with database
+def connect_db():
+	return sqlite3.connect(app.database)
 
 if __name__ == '__main__':
 	app.run(debug=True)
