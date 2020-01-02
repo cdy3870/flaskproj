@@ -1,12 +1,18 @@
 from flask import Flask, render_template, url_for, redirect, request, session, flash, g
 from functools import wraps
+from flask_sqlalchemy import SQLAlchemy
 import sqlite3
 
 app = Flask(__name__)
 
 #key needed for session 
 app.secret_key = 'secret'
-app.database = "sample.db"
+app.database = "posts.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+from models import *
 
 #wrap used to prevent unwanted accesses
 def login_required(f):
@@ -23,12 +29,13 @@ def login_required(f):
 @login_required
 def home():
 	#g stores temporary objects, specific to flask, storing connection
-	g.db = connect_db()
+	#g.db = connect_db()
 	#select query
-	cur = g.db.execute('select * from posts')
+	#cur = g.db.execute('select * from posts')
 	#create dict/map, used list comprehension to store query results in dict
-	posts = [dict(title = row[0], description = row[1]) for row in cur.fetchall()]
-	g.db.close()
+	#posts = [dict(title = row[0], description = row[1]) for row in cur.fetchall()]
+	#g.db.close()
+	posts = db.session.query(BlogPosts).all()
 	return render_template('index.html', posts = posts)
 
 @app.route('/welcome')
