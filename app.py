@@ -3,6 +3,10 @@ from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
 import sqlite3
 import requests
+from collections import Counter
+from bs4 import BeautifulSoup
+from stop_words import stops
+import nltk
 
 app = Flask(__name__)
 
@@ -51,7 +55,21 @@ def home():
 		try:
 			url = request.form['url']
 			r = requests.get(url)
-			return redirect(url_for('wordcounter'))
+			raw = BeautifulSoup(r.text, 'html.parser').get_text()
+			nltk.data.path.append('./nltk_data/')  # set the path
+			tokens = nltk.word_tokenize(raw)
+			text = nltk.Text(tokens)
+
+			# remove punctuation, count raw words
+			"""nonPunct = re.compile('.*[A-Za-z].*')
+			raw_words = [w for w in text if nonPunct.match(w)]
+			raw_word_count = Counter(raw_words)
+
+			# stop words
+			no_stop_words = [w for w in raw_words if w.lower() not in stops]
+			no_stop_words_count = Counter(no_stop_words)"""
+		    			
+			#return redirect(url_for('wordcounter'))
 		except:       	
 			errors.append("Unable to get URL. Please make sure it's valid and try again.")
 			return {"error": errors}
@@ -91,10 +109,11 @@ def logout():
 def connect_db():
 	return sqlite3.connect(app.database)
 
-@login_required
+'''@login_required
 @app.route('/wordcounter')
 def wordcounter():
-	return render_template('wordcount.html')
+
+	return render_template('index.html')'''
 
 if __name__ == '__main__':
 	app.run(debug=True)
